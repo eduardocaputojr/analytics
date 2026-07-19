@@ -71,6 +71,17 @@ describe("dashboard-utils — filtros e KPIs (Etapa 8)", () => {
     expect(kpi.count).toBe(2);
   });
 
+  it("computa a CONTAGEM DISTINTA (destaque certo p/ colunas identificador/código, onde somar não faz sentido)", () => {
+    const comValorRepetido: DataRow[] = [
+      { Regiao: "Sul", Vendas: 100, Quando: "2024-01-10", Nota: "a" },
+      { Regiao: "Norte", Vendas: 100, Quando: "2024-02-10", Nota: "b" },
+      { Regiao: "Sul", Vendas: 300, Quando: "2024-03-10", Nota: "c" },
+    ];
+    const [kpi] = computeKpis(METADATA, comValorRepetido);
+    expect(kpi.count).toBe(3); // 3 valores não-vazios
+    expect(kpi.distinctCount).toBe(2); // "100" repete uma vez
+  });
+
   it("só oferece filtro para categorias de baixa cardinalidade", () => {
     const columns = categoricalColumns(METADATA).map((column) => column.name);
     expect(columns).toContain("Regiao");

@@ -129,16 +129,30 @@ export function applyFilters(rows: DataRow[], filters: DashboardFilters): DataRo
 
 // ────────────────────────────────── KPIs ──────────────────────────────────
 
+/**
+ * Agregado que um card de KPI pode destacar. "count" = quantidade de valores
+ * não-vazios; "distinct" = CONTAGEM DISTINTA (quantos valores ÚNICOS aparecem)
+ * — o destaque certo para colunas identificador/código (ex.: CNPJ, matrícula,
+ * um código interno de ERP tipo "ZBRM"), onde SOMAR não tem significado de
+ * negócio nenhum. O nome de um código costuma ser opaco (não dá pra detectar
+ * por heurística de nome com segurança), então em vez de adivinhar, o usuário
+ * escolhe na própria UI do card (mesmo padrão do seletor de agregação dos
+ * gráficos, `AGG_OPTIONS`) — ver `components/dashboard/kpi-cards.tsx`.
+ */
+export type KpiHighlight = "sum" | "mean" | "count" | "distinct";
+
 export interface KpiValue {
   column: string;
   sum: number;
   mean: number;
   count: number;
-  /** Qual agregado faz sentido como DESTAQUE (média p/ preço/percentual…). */
-  highlight: "sum" | "mean";
+  /** Quantidade de valores DISTINTOS entre os não-vazios (contagem distinta). */
+  distinctCount: number;
+  /** Qual agregado o card destaca POR PADRÃO (o usuário pode trocar na UI). */
+  highlight: KpiHighlight;
 }
 
-/** Soma/média por coluna numérica sobre as linhas FILTRADAS (até `maxColumns`). */
+/** Soma/média/contagem distinta por coluna numérica sobre as linhas FILTRADAS (até `maxColumns`). */
 export function computeKpis(
   metadata: DatasetMetadata,
   rows: DataRow[],
@@ -148,11 +162,14 @@ export function computeKpis(
   return columns.map((column) => {
     let sum = 0;
     let count = 0;
+    const distinct = new Set<string>();
     for (const row of rows) {
-      const value = parseLocaleNumber(row[column.name]);
+      const raw = row[column.name];
+      const value = parseLocaleNumber(raw);
       if (value !== null) {
         sum += value;
         count++;
+        distinct.add(String(raw));
       }
     }
     return {
@@ -160,6 +177,7 @@ export function computeKpis(
       sum,
       mean: count > 0 ? sum / count : 0,
       count,
+      distinctCount: distinct.size,
       highlight: autoAgg(column),
     };
   });
