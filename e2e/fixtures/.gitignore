@@ -1,0 +1,6 @@
+# Fixtures de VOLUME geradas sob demanda por generate-volume.mjs — grandes
+# (100k linhas, alguns MB) e determinísticas (mesma seed sempre reproduz o
+# mesmo arquivo), por isso não são versionadas. Gere com:
+#   node e2e/fixtures/generate-volume.mjs
+vendas-100k.csv
+*-volume.csv

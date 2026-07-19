@@ -1,0 +1,47 @@
+#!/bin/sh
+#
+# pre-push — a main não recebe push direto.
+#
+# A proteção de branch do GitHub não existe em conta free + repo privado, então a
+# defesa é local: este hook. O único caminho para a main é o ritual de promoção
+# (`npm run promote`), que valida os portões, salva a `backup-main` e cria a tag datada.
+#
+# Publicar a promoção (a saída do promote lembra disso):
+#     PROMOTE=1 git push origin main backup-main --follow-tags        (bash)
+#     $env:PROMOTE=1; git push origin main backup-main --follow-tags  (PowerShell)
+#
+# Instalação (uma vez por clone):  git config core.hooksPath .githooks
+#
+# O git manda no stdin: <ref local> <sha local> <ref remota> <sha remoto>
+
+if [ "$PROMOTE" = "1" ]; then
+  exit 0
+fi
+
+zero=$(git hash-object --stdin </dev/null | tr '0-9a-f' '0')
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # ignora deleção de branch (sha local todo zero)
+  [ "$local_sha" = "$zero" ] && continue
+
+  case "$remote_ref" in
+    refs/heads/main)
+      echo ""
+      echo "  ✋ push direto na 'main' BLOQUEADO (.githooks/pre-push)."
+      echo ""
+      echo "     A main é produção e só recebe merge de 'appdev' com autorização"
+      echo "     explícita do Michael — e sempre com backup-main + tag antes."
+      echo ""
+      echo "     Caminho certo:"
+      echo "       1. commite na 'claude-local'"
+      echo "       2. merge em 'appdev' com os portões verdes"
+      echo "          (npm test · npm run lint · npm run build)"
+      echo "       3. npm run promote          (valida, salva backup-main, faz o merge)"
+      echo "       4. PROMOTE=1 git push origin main backup-main --follow-tags"
+      echo ""
+      exit 1
+      ;;
+  esac
+done
+
+exit 0

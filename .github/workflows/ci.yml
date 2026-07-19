@@ -1,0 +1,51 @@
+name: CI
+
+# Repositório ainda não tem remote configurado — este workflow fica pronto para
+# quando houver push/PR. Cobre só o que é rápido e determinístico: tipos, lint,
+# testes unitários (Vitest) e o build de produção (standalone).
+#
+# E2E (Playwright) fica FORA do CI por ora: os specs sobem o próprio dev server
+# na porta 3910 e exercitam o navegador de ponta a ponta — mais lento e mais
+# sensível a ambiente (browsers do Playwright, timeouts) do que convém para um
+# gate de CI neste estágio do projeto. Rodar localmente com `npm run test:e2e`;
+# reavaliar trazer para o CI quando o projeto ganhar runner dedicado/cache de
+# browsers.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Tipos, lint, testes e build
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Instalar dependências (npm ci)
+        run: npm ci
+
+      - name: Checagem de tipos (tsc --noEmit)
+        run: npx tsc --noEmit
+
+      - name: Lint (ESLint)
+        run: npm run lint
+
+      - name: Testes unitários (Vitest)
+        run: npm test
+
+      - name: Build de produção (standalone)
+        run: npm run build

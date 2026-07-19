@@ -1,0 +1,11 @@
+date,region,product,revenue,units
+2024-01-05,East,Coffee Beans 500g,"3,500.75",120
+2024/01/05,West,Green Tea Box,980.00,90
+2024-01-12,East,Coffee Beans 500g,"1,234.56",130
+2024/01/12,West,Green Tea Box,"3,500",95
+2024-02-03,East,Coffee Beans 500g,1402.00,138
+2024/02/03,West,Green Tea Box,"12,345,678",101
+2024-02-18,East,Coffee Beans 500g,"1,288.80",126
+2024/02/18,West,Green Tea Box,999.99,92
+2024-03-07,East,Coffee Beans 500g,"1,520.45",145
+2024/03/07,West,Green Tea Box,"1,205.00",110

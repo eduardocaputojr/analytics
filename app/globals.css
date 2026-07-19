@@ -1,0 +1,256 @@
+@import "tailwindcss";
+
+/*
+ * Tema claro/escuro comutável — IA Analytics Pro.
+ * Fonte da verdade: docs/auditoria-neo-2026-07/design-tema-claro.md (spec do UI/UX, FE-7/FE-8).
+ *
+ * Mecanismo: atributo `data-theme="dark" | "light"` em <html> (ver
+ * app/layout.tsx — script inline anti-flash + hooks/use-theme.ts para as
+ * trocas em runtime). Cada token vira uma custom property CSS registrada em
+ * `@theme inline`, que o Tailwind v4 usa para GERAR sozinho as utilities
+ * (bg-surface-elevated, text-text-muted, border-border-default, ...) — nenhum
+ * componente decide cor por tema, só troca o valor por trás da classe.
+ */
+
+:root,
+:root[data-theme="dark"] {
+  --surface-base: #0b1120;
+  --surface-elevated: #111a2c;
+  --surface-sunken: #0a0f1a;
+  --surface-hover: #1c2740;
+  --surface-chip: #16213a;
+
+  --border-subtle: #1e293b;
+  --border-default: #2b3b57;
+  --border-strong: #3d4f6f;
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8; /* FE-7: substitui slate-500/600 no tema escuro */
+  --text-disabled: #64748b; /* só para controles desabilitados, nunca texto obrigatório */
+  --text-on-accent: #06170f; /* texto sobre um preenchimento cheio de --accent (que é claro) */
+
+  --accent: #34d399; /* emerald-400 — ícones, texto de destaque, borda de foco */
+  --accent-strong: #4ade80; /* hover do accent */
+  --accent-solid: #34d399; /* preenchimento sólido de botão */
+  --accent-subtle-bg: #123326;
+  --focus-ring: #34d399;
+
+  --state-success-text: #6ee7b7;
+  --state-success-bg: rgba(52, 211, 153, 0.1);
+  --state-success-border: rgba(52, 211, 153, 0.25);
+
+  --state-warning-text: #fcd34d;
+  --state-warning-bg: rgba(251, 191, 36, 0.1);
+  --state-warning-border: rgba(251, 191, 36, 0.2);
+
+  --state-error-text: #fca5a5;
+  --state-error-bg: rgba(248, 113, 113, 0.1);
+  --state-error-border: rgba(248, 113, 113, 0.25);
+
+  --state-info-text: #93c5fd;
+  --state-info-bg: rgba(96, 165, 250, 0.1);
+  --state-info-border: rgba(96, 165, 250, 0.2);
+
+  --chart-1: #34d399; /* verde-azulado (marca) */
+  --chart-2: #38bdf8; /* azul-céu */
+  --chart-3: #fb923c; /* laranja */
+  --chart-4: #facc15; /* amarelo */
+  --chart-5: #818cf8; /* índigo */
+  --chart-6: #f87171; /* vermelho */
+  --chart-7: #e879f9; /* magenta/roxo-avermelhado */
+  --chart-8: #94a3b8; /* cinza neutro — reservado para "Outros"/overflow */
+
+  --chart-grid: #1e293b;
+  --chart-axis: #94a3b8;
+  --chart-label: #cbd5e1;
+  --chart-tooltip-bg: #0f172a;
+  --chart-tooltip-border: #1e293b;
+  --chart-tooltip-text: #e2e8f0;
+  --chart-cursor: rgba(148, 163, 184, 0.08);
+
+  --native-color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --surface-base: #f8fafc;
+  --surface-elevated: #ffffff;
+  --surface-sunken: #f1f5f9;
+  --surface-hover: #e2e8f0;
+  --surface-chip: #f1f5f9;
+
+  --border-subtle: #e2e8f0;
+  --border-default: #cbd5e1;
+  --border-strong: #94a3b8;
+
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #475569; /* FE-7: legendas/labels pequenos, ≥4.5:1 garantido */
+  --text-disabled: #94a3b8;
+  --text-on-accent: #ffffff; /* texto sobre --accent-solid (escuro no claro) */
+
+  --accent: #059669; /* emerald-600 — ícones, texto de destaque, borda */
+  --accent-strong: #047857;
+  --accent-solid: #047857; /* emerald-700 — preenchimento sólido + texto branco */
+  --accent-subtle-bg: #d1fae5;
+  --focus-ring: #047857;
+
+  --state-success-text: #047857;
+  --state-success-bg: rgba(5, 150, 105, 0.08);
+  --state-success-border: rgba(5, 150, 105, 0.25);
+
+  --state-warning-text: #92400e;
+  --state-warning-bg: rgba(217, 119, 6, 0.08);
+  --state-warning-border: rgba(217, 119, 6, 0.25);
+
+  --state-error-text: #b91c1c;
+  --state-error-bg: rgba(220, 38, 38, 0.08);
+  --state-error-border: rgba(220, 38, 38, 0.25);
+
+  --state-info-text: #1d4ed8;
+  --state-info-bg: rgba(37, 99, 235, 0.08);
+  --state-info-border: rgba(37, 99, 235, 0.2);
+
+  --chart-1: #059669; /* verde-azulado */
+  --chart-2: #0284c7; /* azul */
+  --chart-3: #ea580c; /* laranja */
+  --chart-4: #ca8a04; /* amarelo/dourado (mais escuro que o cru p/ ler no branco) */
+  --chart-5: #4f46e5; /* índigo */
+  --chart-6: #dc2626; /* vermelho */
+  --chart-7: #c026d3; /* magenta/roxo-avermelhado */
+  --chart-8: #64748b; /* cinza neutro — "Outros"/overflow */
+
+  --chart-grid: #e2e8f0;
+  --chart-axis: #475569;
+  --chart-label: #334155;
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: #cbd5e1;
+  --chart-tooltip-text: #0f172a;
+  --chart-cursor: rgba(15, 23, 42, 0.06);
+
+  --native-color-scheme: light;
+}
+
+/* Variante `dark:` própria, ligada ao NOSSO atributo (não a prefers-color-scheme
+   do navegador) — só para os pouquíssimos casos em que uma cor categórica
+   crua (sky/violet/amber — badges de tipo de coluna) precisa de um tom
+   diferente por tema além dos tokens semânticos acima (ver TypeBadge em
+   app/page.tsx). Receita oficial do Tailwind v4 para dark mode por atributo. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme inline {
+  --color-surface-base: var(--surface-base);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-chip: var(--surface-chip);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-disabled: var(--text-disabled);
+  --color-text-on-accent: var(--text-on-accent);
+
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-solid: var(--accent-solid);
+  --color-accent-subtle-bg: var(--accent-subtle-bg);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--surface-base);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+    sans-serif;
+}
+
+/* Scrollbar discreta, coerente com o tema ativo. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+/* Inputs nativos (ex.: <input type="date"> em filters-bar.tsx) — o calendário
+   do navegador segue o tema ativo em vez de ficar fixo em "dark". */
+input,
+select {
+  color-scheme: var(--native-color-scheme);
+}
+
+/* Troca de tema instantânea por padrão (ferramenta de BI deve responder na
+   hora). Só suaviza SUPERFÍCIES (nunca texto, que ficaria "piscando") para
+   quem não pediu menos movimento no SO. */
+@media (prefers-reduced-motion: no-preference) {
+  body,
+  [class*="bg-surface"],
+  [class*="border-border"] {
+    transition: background-color 120ms ease, border-color 120ms ease;
+  }
+}
+
+/*
+ * Relatório para impressão/PDF: o botão "Relatório / PDF" chama window.print().
+ * Só a .print-area (dashboard) é impressa; controles .no-print somem. O tema de
+ * impressão é SEMPRE CLARO (fundo branco, texto escuro) — independente do
+ * data-theme ativo na tela — profissional e econômico em tinta, mantendo as
+ * cores dos gráficos (print-color-adjust: exact). Bloco hardcoded de propósito
+ * (não usa tokens): não deve reagir ao data-theme.
+ */
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block;
+  }
+
+  /* Texto legível sobre branco. */
+  .print-area,
+  .print-area * {
+    color: #0f172a !important;
+  }
+  .print-area .text-text-secondary,
+  .print-area .text-text-muted {
+    color: #64748b !important; /* legendas em cinza médio */
+  }
+
+  /* Contêineres (cards, figuras) → claros com borda visível. */
+  .print-area article,
+  .print-area figure,
+  .print-area section,
+  .print-area .rounded-xl,
+  .print-area .rounded-2xl {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: none !important;
+  }
+
+  /* Não quebrar um gráfico/KPI no meio de uma página. */
+  .print-area figure,
+  .print-area article {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

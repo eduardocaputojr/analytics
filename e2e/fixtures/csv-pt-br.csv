@@ -1,0 +1,16 @@
+data;loja;produto;preco;desconto_percentual;quantidade
+05/01/2024;Loja Centro;Café Torrado 500g;R$ 23,90;5%;120
+05/01/2024;Loja Norte;Chá Verde Caixa;18,50;0%;90
+05/01/2024;Loja Sul;Suco Integral 1L;R$ 9,99;10%;140
+12/01/2024;Loja Centro;Café Torrado 500g;1.234,56;12,5%;5
+12/01/2024;Loja Norte;Chá Verde Caixa;R$ 20,00;0%;95
+12/01/2024;Loja Sul;Suco Integral 1L;10,45;7,5%;150
+03/02/2024;Loja Centro;Café Torrado 500g;R$ 24,50;0%;138
+03/02/2024;Loja Norte;Chá Verde Caixa;19,90;15%;101
+03/02/2024;Loja Sul;Suco Integral 1L;R$ 11,20;0%;158
+18/02/2024;Loja Centro;Café Torrado 500g;23,80;5%;126
+18/02/2024;Loja Norte;Chá Verde Caixa;R$ 17,99;0%;92
+18/02/2024;Loja Sul;Suco Integral 1L;11,00;20%;152
+07/03/2024;Loja Centro;Café Torrado 500g;R$ 25,20;0%;145
+07/03/2024;Loja Norte;Chá Verde Caixa;20,10;10%;110
+07/03/2024;Loja Sul;Suco Integral 1L;R$ 11,95;0%;165

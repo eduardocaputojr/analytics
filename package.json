@@ -1,0 +1,80 @@
+{
+  "name": "ia-analytics-pro",
+  "version": "1.0.0",
+  "private": true,
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build && node scripts/copy-standalone-assets.mjs",
+    "start": "node scripts/start-standalone.mjs",
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "electron:dev": "electron electron/main.cjs",
+    "dist": "npm run build && electron-builder",
+    "promote": "node scripts/promote.mjs"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "lucide-react": "^1.20.0",
+    "mssql": "^12.6.0",
+    "mysql2": "^3.22.5",
+    "next": "16.2.9",
+    "papaparse": "^5.5.3",
+    "pg": "^8.22.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "recharts": "^3.8.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@tailwindcss/postcss": "^4",
+    "@types/mssql": "^12.3.0",
+    "@types/node": "^20",
+    "@types/papaparse": "^5.5.2",
+    "@types/pg": "^8.20.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "electron": "^42.4.1",
+    "electron-builder": "^26.15.3",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.9",
+    "fake-indexeddb": "^6.2.5",
+    "happy-dom": "^20.10.6",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^4.1.9"
+  },
+  "build": {
+    "appId": "com.ia.analytics.pro",
+    "productName": "IA Analytics Pro",
+    "files": [
+      "electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": ".next/standalone",
+        "to": "app"
+      }
+    ],
+    "directories": {
+      "output": "dist-desktop"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ]
+    }
+  }
+}

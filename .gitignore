@@ -1,0 +1,67 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# massa de dados de teste gerada localmente (não versionar)
+/teste_*.csv
+/teste_*.xlsx
+/teste_*.xls
+/teste_*.db
+
+# Claude Code — configuração local da máquina (não versionar)
+.claude/settings.local.json
+
+# Saída do empacotador desktop (Electron)
+/dist-desktop/
+
+# Playwright (E2E) — artefatos e navegadores
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# Isolamento de diretório (ver CLAUDE.md): backups e worktrees vivem DENTRO do projeto
+/_backups/
+/.worktrees/
+
+# NEO local — modelo antigo, migrado para docs/ em 2026-07-12 e aposentado.
+# Hoje o NEO é global (via sky/) e a memória local vive em STATE.md / docs/journal.md.
+# Ignorado como defesa caso alguma sessão antiga recrie a pasta.
+/.neo/
