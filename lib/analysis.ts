@@ -16,7 +16,7 @@ import type {
   NumericStats,
   StringStats,
 } from "./types";
-import type { AggKind, ChartSpec, DatasetMetadata } from "./types";
+import type { AggKind, ChartSpec, DatasetMetadata, TimeGranularity } from "./types";
 import { coerceChartType, type ChartType } from "./chart-rules";
 
 const COLUMN_TYPES: readonly ColumnType[] = ["string", "number", "date", "boolean", "unknown"];
@@ -35,6 +35,18 @@ const SOURCE_FORMATS: readonly DatasetMetadata["sourceFormat"][] = [
 const RAW_CHART_TYPE_TOKENS = ["bar", "area", "pie", "scatter", "treemap", "combo", "line"] as const;
 
 const ALLOWED_AGGS: readonly AggKind[] = ["sum", "mean", "count", "min", "max"];
+
+// Granularidades reconhecidas em specs vindas da IA/dashboards salvos — mesma
+// lógica do ALLOWED_AGGS acima: allowlist explícita, "auto"/ausente cai no
+// heurístico automático de lib/chart-data.ts (comportamento pré-existente).
+const ALLOWED_GRANULARITIES: readonly TimeGranularity[] = [
+  "auto",
+  "day",
+  "week",
+  "month",
+  "quarter",
+  "year",
+];
 
 // (IA-2) Teto de gráficos por resposta de IA, aplicado aqui no SERVIDOR — antes
 // só o cliente (`mergeCharts` em lib/dashboard-utils.ts, default `max = 8`)
@@ -333,6 +345,9 @@ export function normalizeCharts(
     const agg = ALLOWED_AGGS.includes(entry.agg as AggKind)
       ? (entry.agg as AggKind)
       : undefined;
+    const granularity = ALLOWED_GRANULARITIES.includes(entry.granularity as TimeGranularity)
+      ? (entry.granularity as TimeGranularity)
+      : undefined;
 
     charts.push({
       chartType,
@@ -343,6 +358,7 @@ export function normalizeCharts(
       xKey,
       yKeys,
       agg,
+      granularity,
       reason: typeof entry.reason === "string" ? entry.reason : undefined,
     });
   }

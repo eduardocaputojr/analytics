@@ -8,13 +8,14 @@
  * agregação, exportação PNG (SVG → canvas, local) e remoção.
  */
 
-import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
   AreaChart,
   BarChart3,
   Download,
   Layers,
   LayoutGrid,
+  Pencil,
   PieChart,
   ScatterChart,
   X,
@@ -53,12 +54,15 @@ export const ChartCard = memo(function ChartCard({
   rows,
   metadata,
   onRemove,
+  onRename,
   onDrill,
 }: {
   spec: ChartSpec;
   rows: DataRow[];
   metadata: DatasetMetadata;
   onRemove?: () => void;
+  /** Renomeia o gráfico (persiste no `charts` do DashboardView — sobrevive a "Salvar"). */
+  onRename?: (title: string) => void;
   /** Filtro cruzado: recebe (coluna do eixo X, valor clicado). */
   onDrill?: (column: string, value: string) => void;
 }) {
@@ -95,6 +99,28 @@ export const ChartCard = memo(function ChartCard({
   // lib/chart-data.ts) — pizza/treemap/dispersão não têm "linha do tempo".
   const showGranularity =
     xIsTemporal && (chartType === "area" || chartType === "bar" || chartType === "combo");
+
+  // Edição do título: NÃO tem estado local próprio (ao contrário de
+  // chartType/agg/granularity, que são preferências de VISUALIZAÇÃO da
+  // sessão) — o texto confirmado sobe direto para `onRename`, que atualiza o
+  // `charts` do DashboardView; o card volta a ler `spec.title` no próximo
+  // render. Assim o nome sobrevive a "Salvar dashboard"/reabrir, igual a
+  // qualquer outro campo do gráfico.
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(spec.title);
+
+  function startEditingTitle() {
+    setTitleDraft(spec.title);
+    setEditingTitle(true);
+  }
+  function commitTitle() {
+    const next = titleDraft.trim();
+    if (next && next !== spec.title) onRename?.(next);
+    setEditingTitle(false);
+  }
+  function cancelTitleEdit() {
+    setEditingTitle(false);
+  }
 
   // Drill-down faz sentido nos tipos categóricos (barra/combo/pizza/treemap).
   const drillable =
@@ -191,26 +217,62 @@ export const ChartCard = memo(function ChartCard({
       ref={containerRef}
       className="space-y-2 rounded-xl border border-border-subtle bg-surface-elevated p-4"
     >
-      {/* Cabeçalho: título à esquerda, controles à direita (linha própria). */}
-      <figcaption className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="truncate text-sm font-medium text-text-primary" title={spec.title}>
-            {spec.title}
-          </h3>
-          {drillable ? (
-            <p className="no-print truncate text-xs text-accent-strong">
-              Clique numa {drillTarget} para filtrar o dashboard
-            </p>
+      {/* Cabeçalho: título em linha PRÓPRIA (largura total — não compete por
+          espaço com os controles, que antes cortavam o texto em cards
+          estreitos/com muitos botões) + editável via lápis; controles e
+          motivo/dica de drill-down ficam na linha de baixo. */}
+      <figcaption className="space-y-1.5">
+        <div className="flex items-start gap-1.5">
+          {editingTitle ? (
+            <input
+              autoFocus
+              value={titleDraft}
+              onChange={(event) => setTitleDraft(event.target.value)}
+              onBlur={commitTitle}
+              onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
+                if (event.key === "Enter") commitTitle();
+                if (event.key === "Escape") cancelTitleEdit();
+              }}
+              maxLength={120}
+              aria-label="Título do gráfico"
+              className="min-w-0 flex-1 rounded-lg border border-accent bg-surface-sunken px-2 py-1 text-sm font-medium text-text-primary outline-none"
+            />
           ) : (
-            spec.reason && (
-              <p className="truncate text-xs text-text-muted" title={spec.reason}>
-                {spec.reason}
-              </p>
-            )
+            <>
+              <h3 className="min-w-0 flex-1 break-words text-sm font-medium text-text-primary">
+                {spec.title}
+              </h3>
+              {onRename && (
+                <button
+                  type="button"
+                  onClick={startEditingTitle}
+                  title="Editar título"
+                  aria-label="Editar título"
+                  className="no-print shrink-0 rounded-lg p-1 text-text-muted transition-colors hover:text-accent"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </>
           )}
         </div>
 
-        <div className="no-print flex shrink-0 items-center gap-1">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            {drillable ? (
+              <p className="no-print truncate text-xs text-accent-strong">
+                Clique numa {drillTarget} para filtrar o dashboard
+              </p>
+            ) : (
+              spec.reason && (
+                <p className="truncate text-xs text-text-muted" title={spec.reason}>
+                  {spec.reason}
+                </p>
+              )
+            )}
+          </div>
+
+          <div className="no-print flex shrink-0 items-center gap-1">
           {showGranularity && (
             <select
               value={granularity}
@@ -295,6 +357,7 @@ export const ChartCard = memo(function ChartCard({
               <X className="h-3.5 w-3.5" />
             </button>
           )}
+        </div>
         </div>
       </figcaption>
 
