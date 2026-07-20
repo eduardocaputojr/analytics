@@ -102,6 +102,19 @@ export function DashboardView({
     [charts],
   );
 
+  // Renomear: mesmo padrão ESTÁVEL do onRemove acima — atualiza só o `title`
+  // do gráfico clicado, imutável, preservando a posição/identidade dos demais
+  // (comparação por referência, igual ao filter do onRemove). Como o nome
+  // passa a viver no `charts` do DashboardView (não mais só no estado local
+  // do ChartCard), ele sobrevive a "Salvar dashboard"/reabrir.
+  const renameHandlers = useMemo(
+    () =>
+      charts.map((spec) => (title: string) =>
+        setCharts((prev) => prev.map((c) => (c === spec ? { ...c, title } : c))),
+      ),
+    [charts],
+  );
+
   const exportCsv = () => {
     const columns = dataset.metadata.columns.map((column) => column.name);
     const csv = rowsToCsv(filteredRows, columns);
@@ -217,12 +230,19 @@ export function DashboardView({
         <div className="grid gap-4 lg:grid-cols-2">
           {charts.map((spec, index) => (
             <ChartCard
-              key={`${spec.title}-${index}`}
+              // Chave NÃO usa `spec.title` — o título agora é editável (onRename)
+              // e trocar a key força o React a desmontar/remontar o card,
+              // perdendo a visualização escolhida (tipo/agregação/granularidade)
+              // no meio da edição. Identidade estrutural do gráfico + índice
+              // (mesmo espírito do `chartKey` de lib/dashboard-utils.ts) é
+              // estável ao renomear e ainda distingue gráficos diferentes.
+              key={`${spec.chartType}-${spec.xKey}-${spec.yKeys.join(",")}-${index}`}
               spec={spec}
               rows={filteredRows}
               metadata={dataset.metadata}
               onDrill={handleDrill}
               onRemove={removeHandlers[index]}
+              onRename={renameHandlers[index]}
             />
           ))}
         </div>

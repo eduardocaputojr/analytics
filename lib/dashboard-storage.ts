@@ -10,7 +10,7 @@
  * config feita para uma planilha não quebra ao ser aplicada em outra.
  */
 
-import type { AggKind, ChartSpec, DatasetMetadata } from "./types";
+import type { AggKind, ChartSpec, DatasetMetadata, TimeGranularity } from "./types";
 import type { DashboardFilters } from "./dashboard-utils";
 import { normalizeCharts } from "./analysis";
 
@@ -39,6 +39,17 @@ const CHART_TYPES = new Set<ChartSpec["chartType"]>([
   "combo",
 ]);
 const AGG_KINDS = new Set<AggKind>(["sum", "mean", "count", "min", "max"]);
+// Mesma allowlist de lib/analysis.ts (ALLOWED_GRANULARITIES) — mantida aqui
+// separada porque este módulo valida arquivo .iaap não confiável (import),
+// não a resposta da IA; "auto"/ausente cai no heurístico automático.
+const GRANULARITIES = new Set<TimeGranularity>([
+  "auto",
+  "day",
+  "week",
+  "month",
+  "quarter",
+  "year",
+]);
 
 function clampString(value: unknown, max = MAX_STRING_LENGTH): string | undefined {
   return typeof value === "string" ? value.slice(0, max) : undefined;
@@ -61,12 +72,17 @@ function sanitizeImportedChart(value: unknown): ChartSpec | null {
     typeof value.agg === "string" && AGG_KINDS.has(value.agg as AggKind)
       ? (value.agg as AggKind)
       : undefined;
+  const granularity =
+    typeof value.granularity === "string" && GRANULARITIES.has(value.granularity as TimeGranularity)
+      ? (value.granularity as TimeGranularity)
+      : undefined;
   return {
     chartType: value.chartType as ChartSpec["chartType"],
     title,
     xKey,
     yKeys,
     agg,
+    granularity,
     reason: clampString(value.reason, 500),
   };
 }
