@@ -18,6 +18,8 @@
  * NUNCA trata número puro como data (ex.: "2024" ou 41200 não viram datas).
  */
 
+import type { TimeGranularity } from "./types";
+
 const ISO = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/;
 const SEP = /^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2,4})$/;
 /** AAAA/MM/DD (ano primeiro) — só entra em jogo quando ISO (hífen) não bate. */
@@ -162,4 +164,71 @@ export function toIsoDate(value: unknown): string | null {
 /** true se o valor parece uma data reconhecível (não número, não texto livre). */
 export function looksLikeDate(value: unknown): boolean {
   return parseFlexibleDate(value) !== null;
+}
+
+// ────────────────────── Balde temporal (linha do tempo) ──────────────────────
+//
+// Rótulo de agrupamento para as opções de visão da linha do tempo (dia/semana/
+// mês/trimestre/ano — pedido de produto: granularidade escolhível em vez de
+// só o colapso automático diário→mensal). TODO rótulo é uma string ORDENÁVEL
+// lexicograficamente (largura fixa, zero-padded) — casa com a ordenação por
+// `localeCompare` já usada em chart-data.ts para os rótulos ISO existentes.
+
+function pad(n: number, width: number): string {
+  return String(n).padStart(width, "0");
+}
+
+/**
+ * Semana ISO-8601 do timestamp (UTC): a semana começa na SEGUNDA e pertence
+ * ao ano-calendário que contém sua QUINTA-feira (regra ISO — evita que a
+ * última semana de dezembro "vaze" pro ano seguinte ou a 1ª de janeiro
+ * "regrida" pro ano anterior de forma inconsistente).
+ */
+function isoWeekOf(ms: number): { isoYear: number; isoWeek: number } {
+  const d = new Date(ms);
+  const dayNum = d.getUTCDay() || 7; // domingo (0) → 7, p/ segunda=1..domingo=7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum); // ancora na quinta-feira da semana
+  const isoYear = d.getUTCFullYear();
+  const yearStart = Date.UTC(isoYear, 0, 1);
+  const isoWeek = Math.ceil(((d.getTime() - yearStart) / 864e5 + 1) / 7);
+  return { isoYear, isoWeek };
+}
+
+/**
+ * Rótulo do balde temporal de um timestamp (ms UTC) na granularidade pedida.
+ * Larguras fixas por design (ver comentário da seção): dia "aaaa-mm-dd",
+ * semana "aaaa-Wss" (ISO), mês "aaaa-mm", trimestre "aaaa-Qt", ano "aaaa".
+ */
+export function bucketLabel(ms: number, granularity: Exclude<TimeGranularity, "auto">): string {
+  const d = new Date(ms);
+  const year = d.getUTCFullYear();
+  const month = d.getUTCMonth() + 1;
+  switch (granularity) {
+    case "day":
+      return `${pad(year, 4)}-${pad(month, 2)}-${pad(d.getUTCDate(), 2)}`;
+    case "week": {
+      const { isoYear, isoWeek } = isoWeekOf(ms);
+      return `${pad(isoYear, 4)}-W${pad(isoWeek, 2)}`;
+    }
+    case "month":
+      return `${pad(year, 4)}-${pad(month, 2)}`;
+    case "quarter":
+      return `${pad(year, 4)}-Q${Math.ceil(month / 3)}`;
+    case "year":
+      return `${pad(year, 4)}`;
+  }
+}
+
+/**
+ * Interpreta `value` como data (mesmo parser flexível de sempre) e devolve
+ * já o rótulo do balde temporal na granularidade pedida — ou null quando
+ * `value` não é uma data reconhecível.
+ */
+export function temporalBucketLabel(
+  value: unknown,
+  granularity: Exclude<TimeGranularity, "auto">,
+): string | null {
+  const ms = parseFlexibleDate(value);
+  if (ms === null) return null;
+  return bucketLabel(ms, granularity);
 }

@@ -67,6 +67,100 @@ describe("chart-data — série temporal densa vira mensal", () => {
   });
 });
 
+describe("chart-data — granularidade explícita da linha do tempo (dia/semana/mês/trimestre/ano)", () => {
+  // 5 linhas espalhadas entre jan e abr/2024 — poucas o bastante para NÃO
+  // disparar o colapso automático dia→mês (mesmo espírito do describe acima).
+  const rows: DataRow[] = [
+    { Data: "2024-01-05", Vendas: 10 },
+    { Data: "2024-01-20", Vendas: 20 },
+    { Data: "2024-02-10", Vendas: 30 },
+    { Data: "2024-03-15", Vendas: 40 },
+    { Data: "2024-04-01", Vendas: 50 },
+  ];
+  const spec = (granularity: ChartSpec["granularity"]): ChartSpec => ({
+    chartType: "area",
+    title: "t",
+    xKey: "Data",
+    yKeys: ["Vendas"],
+    granularity,
+  });
+
+  it('"auto" (ou ausente) preserva o comportamento padrão — diário, sem colapso p/ série curta', () => {
+    expect(buildChartData(spec(undefined), rows, true).map((d) => d.__x)).toEqual([
+      "2024-01-05",
+      "2024-01-20",
+      "2024-02-10",
+      "2024-03-15",
+      "2024-04-01",
+    ]);
+    expect(buildChartData(spec("auto"), rows, true).map((d) => d.__x)).toEqual([
+      "2024-01-05",
+      "2024-01-20",
+      "2024-02-10",
+      "2024-03-15",
+      "2024-04-01",
+    ]);
+  });
+
+  it('"day" força visão diária mesmo com granularidade explícita (equivalente ao auto aqui)', () => {
+    const data = buildChartData(spec("day"), rows, true);
+    expect(data.map((d) => d.__x)).toEqual([
+      "2024-01-05",
+      "2024-01-20",
+      "2024-02-10",
+      "2024-03-15",
+      "2024-04-01",
+    ]);
+  });
+
+  it('"month" agrupa por yyyy-mm e SOMA os valores do mesmo mês', () => {
+    const data = buildChartData(spec("month"), rows, true);
+    expect(data.map((d) => d.__x)).toEqual(["2024-01", "2024-02", "2024-03", "2024-04"]);
+    expect(data.find((d) => d.__x === "2024-01")?.Vendas).toBe(30); // 10 + 20
+  });
+
+  it('"quarter" agrupa por trimestre (Q1..Q4)', () => {
+    const data = buildChartData(spec("quarter"), rows, true);
+    expect(data.map((d) => d.__x)).toEqual(["2024-Q1", "2024-Q2"]);
+    expect(data.find((d) => d.__x === "2024-Q1")?.Vendas).toBe(10 + 20 + 30 + 40); // jan+jan+fev+mar
+  });
+
+  it('"year" agrupa o ano inteiro num único ponto', () => {
+    const data = buildChartData(spec("year"), rows, true);
+    expect(data).toHaveLength(1);
+    expect(data[0].__x).toBe("2024");
+    expect(data[0].Vendas).toBe(10 + 20 + 30 + 40 + 50);
+  });
+
+  it('"week" agrupa por semana ISO-8601 (rótulos ordenáveis "aaaa-Wss")', () => {
+    const data = buildChartData(spec("week"), rows, true);
+    expect(data.every((d) => /^\d{4}-W\d{2}$/.test(String(d.__x)))).toBe(true);
+    // ordenado cronologicamente (mesma garantia da visão diária/mensal).
+    const labels = data.map((d) => String(d.__x));
+    expect([...labels].sort()).toEqual(labels);
+  });
+
+  it("granularidade explícita descarta linha com data não reconhecida (mesmo espírito do BUG-2)", () => {
+    const rowsComLixo: DataRow[] = [...rows, { Data: "não é data", Vendas: 999 }];
+    const data = buildChartData(spec("month"), rowsComLixo, true);
+    expect(data.map((d) => d.__x)).toEqual(["2024-01", "2024-02", "2024-03", "2024-04"]);
+    expect(data.some((d) => d.Vendas === 999)).toBe(false);
+  });
+
+  it("granularidade explícita é ignorada fora de série temporal (categoria continua ranking normal)", () => {
+    const catRows: DataRow[] = [
+      { Regiao: "Sul", Vendas: 10 },
+      { Regiao: "Norte", Vendas: 20 },
+    ];
+    const data = buildChartData(
+      { chartType: "bar", title: "t", xKey: "Regiao", yKeys: ["Vendas"], granularity: "month" },
+      catRows,
+      false, // xIsTemporal: false — Regiao não é data
+    );
+    expect(data.map((d) => d.__x).sort()).toEqual(["Norte", "Sul"]);
+  });
+});
+
 describe("chart-data — novos tipos (treemap e combo)", () => {
   const rows: DataRow[] = [
     { Regiao: "Sul", Litros: 100, Fat: 500 },

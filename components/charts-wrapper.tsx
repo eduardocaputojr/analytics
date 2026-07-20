@@ -722,14 +722,29 @@ function truncateLabel(value: string, max = 14): string {
   return value.length > max ? `${value.slice(0, max - 1)}…` : value;
 }
 
-/** "2023-01-05" → "05/01/23"; "2023-01" (mensal) → "jan/23"; resto truncado. */
+/**
+ * Formata o rótulo do eixo do tempo conforme a granularidade do balde (ver
+ * `lib/date-utils.ts#bucketLabel`, fonte dos formatos abaixo):
+ *  - dia      "2023-01-05" → "05/01/23"
+ *  - semana   "2023-W05"   → "S05/23" (semana ISO-8601)
+ *  - mês      "2023-01"    → "jan/23"
+ *  - trimestre "2023-Q1"   → "T1/23"
+ *  - ano      "2023"       → "2023"
+ * Resto (rótulo não reconhecido) cai no truncamento genérico.
+ */
 function formatDateTick(value: string): string {
   const day = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
   if (day) return `${day[3]}/${day[2]}/${day[1].slice(2)}`;
+  const week = /^(\d{4})-W(\d{2})$/.exec(value);
+  if (week) return `S${week[2]}/${week[1].slice(2)}`;
   const month = /^(\d{4})-(\d{2})$/.exec(value);
   if (month) {
     const MESES = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
     return `${MESES[Number(month[2]) - 1] ?? month[2]}/${month[1].slice(2)}`;
   }
+  const quarter = /^(\d{4})-Q(\d)$/.exec(value);
+  if (quarter) return `T${quarter[2]}/${quarter[1].slice(2)}`;
+  const year = /^(\d{4})$/.exec(value);
+  if (year) return year[1];
   return truncateLabel(value, 10);
 }

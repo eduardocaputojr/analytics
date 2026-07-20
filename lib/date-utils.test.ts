@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { parseFlexibleDate, toIsoDate, looksLikeDate } from "./date-utils";
+import {
+  bucketLabel,
+  looksLikeDate,
+  parseFlexibleDate,
+  temporalBucketLabel,
+  toIsoDate,
+} from "./date-utils";
 
 describe("date-utils — parsing flexível de datas", () => {
   it("interpreta ISO-8601 (com e sem hora)", () => {
@@ -68,5 +74,55 @@ describe("date-utils — parsing flexível de datas", () => {
   it("(IA-7) não regride ISO nem DD/MM/AAAA já cobertos", () => {
     expect(toIsoDate("2024-03-05")).toBe("2024-03-05");
     expect(toIsoDate("05/03/2024")).toBe("2024-03-05");
+  });
+});
+
+describe("date-utils — balde temporal (visões diária/semanal/mensal/trimestral/anual)", () => {
+  it("gera rótulo por DIA/MÊS/TRIMESTRE/ANO a partir de um timestamp UTC", () => {
+    const ms = Date.UTC(2024, 2, 5); // 5 de março de 2024 (sexta-feira)
+    expect(bucketLabel(ms, "day")).toBe("2024-03-05");
+    expect(bucketLabel(ms, "month")).toBe("2024-03");
+    expect(bucketLabel(ms, "quarter")).toBe("2024-Q1");
+    expect(bucketLabel(ms, "year")).toBe("2024");
+  });
+
+  it("trimestre cobre os 4 baldes certos (Q1..Q4)", () => {
+    expect(bucketLabel(Date.UTC(2024, 0, 15), "quarter")).toBe("2024-Q1"); // jan
+    expect(bucketLabel(Date.UTC(2024, 3, 15), "quarter")).toBe("2024-Q2"); // abr
+    expect(bucketLabel(Date.UTC(2024, 6, 15), "quarter")).toBe("2024-Q3"); // jul
+    expect(bucketLabel(Date.UTC(2024, 9, 15), "quarter")).toBe("2024-Q4"); // out
+    expect(bucketLabel(Date.UTC(2024, 11, 31), "quarter")).toBe("2024-Q4"); // dez
+  });
+
+  it("semana ISO-8601: mesma semana p/ qualquer dia entre segunda e domingo", () => {
+    // Semana de 2024-03-04 (segunda) a 2024-03-10 (domingo) — semana ISO 10.
+    expect(bucketLabel(Date.UTC(2024, 2, 4), "week")).toBe("2024-W10");
+    expect(bucketLabel(Date.UTC(2024, 2, 7), "week")).toBe("2024-W10");
+    expect(bucketLabel(Date.UTC(2024, 2, 10), "week")).toBe("2024-W10");
+    // segunda seguinte já é outra semana.
+    expect(bucketLabel(Date.UTC(2024, 2, 11), "week")).toBe("2024-W11");
+  });
+
+  it("semana ISO-8601: vira-ano fica no ano da QUINTA-feira que a semana contém", () => {
+    // 2023-01-01 é domingo — pertence à última semana ISO de 2022 (semana 52),
+    // não à semana 1 de 2023 (regra ISO: o ano da semana é o da quinta-feira).
+    expect(bucketLabel(Date.UTC(2023, 0, 1), "week")).toBe("2022-W52");
+    // 2024-01-01 é segunda — semana 1 de 2024 (quinta dessa semana é 2024-01-04).
+    expect(bucketLabel(Date.UTC(2024, 0, 1), "week")).toBe("2024-W01");
+  });
+
+  it("rótulos são ordenáveis lexicograficamente (largura fixa, zero-padded)", () => {
+    const labels = [
+      bucketLabel(Date.UTC(2024, 10, 1), "week"), // novembro → semana de 2 dígitos
+      bucketLabel(Date.UTC(2024, 0, 1), "week"),
+    ].sort();
+    expect(labels).toEqual([bucketLabel(Date.UTC(2024, 0, 1), "week"), bucketLabel(Date.UTC(2024, 10, 1), "week")]);
+  });
+
+  it("temporalBucketLabel interpreta qualquer formato flexível (incl. pt-BR) antes de aplicar o balde", () => {
+    expect(temporalBucketLabel("05/03/2024", "month")).toBe("2024-03");
+    expect(temporalBucketLabel("15 de março de 2024", "quarter")).toBe("2024-Q1");
+    expect(temporalBucketLabel("texto qualquer", "day")).toBeNull();
+    expect(temporalBucketLabel(null, "day")).toBeNull();
   });
 });

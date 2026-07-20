@@ -22,7 +22,7 @@ import {
 import { ChartsWrapper } from "@/components/charts-wrapper";
 import { AGG_OPTIONS } from "@/lib/chart-data";
 import { coerceChartType } from "@/lib/chart-rules";
-import type { AggKind, ChartSpec, DataRow, DatasetMetadata } from "@/lib/types";
+import type { AggKind, ChartSpec, DataRow, DatasetMetadata, TimeGranularity } from "@/lib/types";
 
 // "Linha" foi removida (unificada com "Área"). Combo/Treemap são os novos tipos.
 const TYPE_OPTIONS: Array<{
@@ -36,6 +36,16 @@ const TYPE_OPTIONS: Array<{
   { id: "pie", label: "Pizza", icon: PieChart },
   { id: "treemap", label: "Treemap", icon: LayoutGrid },
   { id: "scatter", label: "Dispersão", icon: ScatterChart },
+];
+
+/** Visões da linha do tempo — "Automático" é o colapso dia→mês de sempre. */
+const GRANULARITY_OPTIONS: Array<{ id: TimeGranularity; label: string }> = [
+  { id: "auto", label: "Automático" },
+  { id: "day", label: "Diária" },
+  { id: "week", label: "Semanal" },
+  { id: "month", label: "Mensal" },
+  { id: "quarter", label: "Trimestral" },
+  { id: "year", label: "Anual" },
 ];
 
 export const ChartCard = memo(function ChartCard({
@@ -71,13 +81,20 @@ export const ChartCard = memo(function ChartCard({
     coerceType(spec.chartType),
   );
   const [agg, setAgg] = useState<AggKind>(spec.agg ?? "sum");
+  const [granularity, setGranularity] = useState<TimeGranularity>(spec.granularity ?? "auto");
   // FE-1: objeto/callback ESTÁVEIS (useMemo/useCallback) — evita recriar props
   // a cada render do ChartCard, o que quebraria o React.memo do ChartsWrapper
   // e forçaria buildChartData a recomputar sem necessidade.
   const effectiveSpec: ChartSpec = useMemo(
-    () => ({ ...spec, chartType, agg }),
-    [spec, chartType, agg],
+    () => ({ ...spec, chartType, agg, granularity }),
+    [spec, chartType, agg, granularity],
   );
+
+  // A visão da linha do tempo só faz sentido quando o eixo X É uma data E o
+  // tipo de gráfico desenha ao longo do tempo (mesmo critério `temporal` de
+  // lib/chart-data.ts) — pizza/treemap/dispersão não têm "linha do tempo".
+  const showGranularity =
+    xIsTemporal && (chartType === "area" || chartType === "bar" || chartType === "combo");
 
   // Drill-down faz sentido nos tipos categóricos (barra/combo/pizza/treemap).
   const drillable =
@@ -194,6 +211,21 @@ export const ChartCard = memo(function ChartCard({
         </div>
 
         <div className="no-print flex shrink-0 items-center gap-1">
+          {showGranularity && (
+            <select
+              value={granularity}
+              onChange={(event) => setGranularity(event.target.value as TimeGranularity)}
+              title="Visão da linha do tempo"
+              aria-label="Visão da linha do tempo"
+              className="rounded-lg border border-border-default bg-surface-sunken px-1.5 py-1 text-[11px] text-text-secondary outline-none focus:border-accent"
+            >
+              {GRANULARITY_OPTIONS.map(({ id, label }) => (
+                <option key={id} value={id}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          )}
           {chartType !== "scatter" && (
             <select
               value={agg}

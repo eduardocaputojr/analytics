@@ -106,6 +106,16 @@ export interface MetadataExtractor {
 export type AggKind = "sum" | "mean" | "count" | "min" | "max";
 
 /**
+ * Granularidade de agrupamento de uma série TEMPORAL (linha do tempo por
+ * data). "auto" preserva o comportamento padrão histórico (balde por DIA, ou
+ * por MÊS quando a série diária fica densa demais — ver `MAX_DAILY_POINTS`
+ * em lib/chart-data.ts); as demais forçam a granularidade escolhida pelo
+ * usuário, não importa a densidade. Só tem efeito em séries cujo eixo X é
+ * uma coluna de DATA (xIsTemporal) — ignorada em categorias/números.
+ */
+export type TimeGranularity = "auto" | "day" | "week" | "month" | "quarter" | "year";
+
+/**
  * Especificação de UM gráfico devolvida pela IA (PLANO_MESTRE.md §3 Fases C/D).
  * Descreve apenas a ARQUITETURA do gráfico — eixos por NOME de coluna e tipo —,
  * jamais valores. Os dados reais são fundidos no cliente na Etapa 5.
@@ -125,6 +135,8 @@ export interface ChartSpec {
   yKeys: string[];
   /** Agregação dos valores por grupo (padrão: soma). Ex.: preço pede média. */
   agg?: AggKind;
+  /** Granularidade da linha do tempo (dia/semana/mês/trimestre/ano). Padrão: "auto". */
+  granularity?: TimeGranularity;
   /** Justificativa curta da sugestão (opcional). */
   reason?: string;
 }

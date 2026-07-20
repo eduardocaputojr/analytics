@@ -9,7 +9,7 @@
  */
 
 import type { AggKind, ChartSpec, DataRow } from "./types";
-import { toIsoDate } from "./date-utils";
+import { temporalBucketLabel, toIsoDate } from "./date-utils";
 import { parseLocaleNumber } from "./number-utils";
 
 /** Valor `null` = lacuna (grupo sem dado para aquele yKey) — não é um zero real. */
@@ -85,7 +85,9 @@ function aggValue(bucket: Bucket | undefined, agg: AggKind): number | null {
 
 /**
  * Prepara os dados de UM gráfico a partir das linhas em memória.
- * Para line/area com série DIÁRIA longa, reagrupa por mês (yyyy-mm).
+ * Para line/area com série DIÁRIA longa, reagrupa por mês (yyyy-mm) — a menos
+ * que `spec.granularity` peça uma visão explícita (dia/semana/mês/trimestre/
+ * ano), caso em que o balde escolhido pelo usuário vale sempre, denso ou não.
  *
  * BUG-6 (análise 09-caca-bugs-graficos.md): um único ponto com data muito
  * distante do resto da série estica o eixo do tempo. Decisão: NÃO
@@ -134,9 +136,18 @@ export function buildChartData(
     xIsTemporal && (isContinuousChart || spec.chartType === "bar" || spec.chartType === "combo");
   const numericContinuous = isContinuousChart && !temporal;
 
-  // 1ª passada: rótulos crus (para decidir a granularidade temporal).
+  // Granularidade EXPLÍCITA escolhida pelo usuário na linha do tempo (visão
+  // diária/semanal/mensal/trimestral/anual) — "auto"/ausente preserva o
+  // colapso automático dia→mês de sempre. Só faz sentido numa série de fato
+  // temporal (`temporal`); em bar/combo sobre categoria ou eixo numérico,
+  // `spec.granularity` é ignorado.
+  const explicitGranularity =
+    temporal && spec.granularity && spec.granularity !== "auto" ? spec.granularity : null;
+
+  // 1ª passada: rótulos crus (só decide o colapso AUTOMÁTICO dia→mês — pulada
+  // quando a granularidade é explícita, que já dita o balde sozinha).
   let monthly = false;
-  if (temporal) {
+  if (temporal && !explicitGranularity) {
     const distinct = new Set<string>();
     for (const row of rows) {
       const label = toLabel(row[spec.xKey]);
@@ -148,25 +159,34 @@ export function buildChartData(
     }
   }
 
-  // 2ª passada: agrega por grupo (dia→mês quando denso).
+  // 2ª passada: agrega por grupo (dia→mês quando denso, OU direto no balde
+  // explícito — dia/semana/mês/trimestre/ano — quando o usuário escolheu um).
   const groups = new Map<string, Record<string, Bucket>>();
   for (const row of rows) {
-    let label = toLabel(row[spec.xKey]);
+    let label: string | null;
+    if (explicitGranularity) {
+      // Mesmo parser flexível de sempre (parseFlexibleDate, via
+      // temporalBucketLabel) — um valor que não é data reconhecível não tem
+      // posição no eixo do tempo (mesmo espírito do BUG-2 abaixo).
+      label = temporalBucketLabel(row[spec.xKey], explicitGranularity);
+    } else {
+      label = toLabel(row[spec.xKey]);
+      // BUG-2: numa série TEMPORAL, um rótulo que não é uma data reconhecida
+      // (toIsoDate falhou e toLabel caiu no fallback `String(value)` — ex.:
+      // "ontem", "sem data", "32/13/2024") não tem posição no eixo do tempo.
+      // Deixá-lo entrar criava um "mês fantasma" ordenado para o FIM (texto >
+      // "yyyy-mm" em localeCompare). Em vez de inventar uma posição, descarta-
+      // se a LINHA inteira do agrupamento temporal — ela segue existindo na
+      // tabela/outros gráficos, só não vira um ponto falso no eixo do tempo.
+      if (label !== null && temporal && !ISO_DAY.test(label)) label = null;
+      if (label !== null && monthly && ISO_DAY.test(label)) label = label.slice(0, 7); // yyyy-mm
+    }
     if (label === null) continue;
-    // BUG-2: numa série TEMPORAL, um rótulo que não é uma data reconhecida
-    // (toIsoDate falhou e toLabel caiu no fallback `String(value)` — ex.:
-    // "ontem", "sem data", "32/13/2024") não tem posição no eixo do tempo.
-    // Deixá-lo entrar criava um "mês fantasma" ordenado para o FIM (texto >
-    // "yyyy-mm" em localeCompare). Em vez de inventar uma posição, descarta-
-    // se a LINHA inteira do agrupamento temporal — ela segue existindo na
-    // tabela/outros gráficos, só não vira um ponto falso no eixo do tempo.
-    if (temporal && !ISO_DAY.test(label)) continue;
     // Mesmo princípio para o eixo NUMÉRICO contínuo (BUG-3a): um rótulo que
     // não converte para número (dado sujo na coluna) não tem posição na
     // ordem numérica — descarta em vez de cair arbitrariamente em algum
     // extremo do eixo.
     if (numericContinuous && parseLocaleNumber(label) === null) continue;
-    if (monthly && ISO_DAY.test(label)) label = label.slice(0, 7); // yyyy-mm
 
     let buckets = groups.get(label);
     if (!buckets) {
